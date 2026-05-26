@@ -13,7 +13,6 @@ lora:
 dpo:
   beta: 0.1
   max_length: 512
-  max_prompt_length: 256
   learning_rate: 5.0e-5
   num_train_epochs: 1
   per_device_train_batch_size: 2

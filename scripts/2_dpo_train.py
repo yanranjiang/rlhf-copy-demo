@@ -101,6 +101,7 @@ def main(config_path: str = "config.yaml"):
             "learning_rate": cfg["dpo"]["learning_rate"],
             "max_train_samples": cfg["data"]["max_train_samples"],
             "max_length": cfg["dpo"]["max_length"],
+            "truncation_mode": "keep_end",
         })
 
         print("Loading model...")
@@ -114,7 +115,6 @@ def main(config_path: str = "config.yaml"):
             output_dir=dpo_cfg["output_dir"],
             beta=dpo_cfg["beta"],
             max_length=dpo_cfg["max_length"],
-            max_prompt_length=dpo_cfg["max_prompt_length"],
             learning_rate=dpo_cfg["learning_rate"],
             num_train_epochs=dpo_cfg["num_train_epochs"],
             per_device_train_batch_size=dpo_cfg["per_device_train_batch_size"],
