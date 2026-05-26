@@ -20,7 +20,7 @@ import mlflow
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+from peft import LoraConfig
 from trl import DPOConfig, DPOTrainer
 
 
@@ -42,25 +42,13 @@ def build_bnb_config(cfg: dict) -> BitsAndBytesConfig:
 def load_model_and_tokenizer(cfg: dict):
     model_name = cfg["model"]["base_model"]
 
+    # Load base model with 4-bit quantization — DPOTrainer attaches LoRA via peft_config
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         quantization_config=build_bnb_config(cfg),
         device_map="auto",
         trust_remote_code=True,
     )
-    model = prepare_model_for_kbit_training(model)
-
-    lora_cfg = cfg["lora"]
-    lora_config = LoraConfig(
-        r=lora_cfg["r"],
-        lora_alpha=lora_cfg["lora_alpha"],
-        lora_dropout=lora_cfg["lora_dropout"],
-        target_modules=lora_cfg["target_modules"],
-        bias="none",
-        task_type="CAUSAL_LM",
-    )
-    model = get_peft_model(model, lora_config)
-    model.print_trainable_parameters()
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     if tokenizer.pad_token is None:
@@ -68,6 +56,18 @@ def load_model_and_tokenizer(cfg: dict):
     tokenizer.padding_side = "left"
 
     return model, tokenizer
+
+
+def build_lora_config(cfg: dict) -> LoraConfig:
+    lora_cfg = cfg["lora"]
+    return LoraConfig(
+        r=lora_cfg["r"],
+        lora_alpha=lora_cfg["lora_alpha"],
+        lora_dropout=lora_cfg["lora_dropout"],
+        target_modules=lora_cfg["target_modules"],
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
 
 
 def load_data(cfg: dict):
@@ -129,8 +129,8 @@ def main(config_path: str = "config.yaml"):
             report_to="none",
         )
 
-        # ref_model=None: TRL uses the frozen base weights (pre-LoRA) as reference.
-        # This halves VRAM usage compared to loading a separate reference model.
+        # peft_config: TRL wraps the model with LoRA and uses frozen base weights as reference.
+        # ref_model=None saves ~3 GB VRAM vs loading a separate reference model.
         trainer = DPOTrainer(
             model=model,
             ref_model=None,
@@ -138,6 +138,7 @@ def main(config_path: str = "config.yaml"):
             train_dataset=train_ds,
             eval_dataset=eval_ds,
             processing_class=tokenizer,
+            peft_config=build_lora_config(cfg),
         )
 
         print("Starting DPO training...")
