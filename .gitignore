@@ -1,0 +1,18 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# model weights (too large for GitHub)
+outputs/dpo_model/
+
+# MLflow runs
+mlruns/
+
+# HuggingFace cache
+~/.cache/huggingface/
+
+# keep evaluation output and preference log
+!outputs/evaluation.json
+!outputs/preference_log.jsonl

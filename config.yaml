@@ -1,0 +1,36 @@
+model:
+  base_model: "Qwen/Qwen2.5-1.5B-Instruct"
+  use_4bit: true
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_compute_dtype: "bfloat16"
+
+lora:
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
+
+dpo:
+  beta: 0.1
+  max_length: 512
+  max_prompt_length: 256
+  learning_rate: 5.0e-5
+  num_train_epochs: 1
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  warmup_ratio: 0.1
+  output_dir: "./outputs/dpo_model"
+  logging_steps: 10
+  save_steps: 200
+  eval_steps: 200
+
+data:
+  dataset_name: "HuggingFaceH4/ultrafeedback_binarized"
+  train_split: "train_prefs"
+  eval_split: "test_prefs"
+  max_train_samples: 5000
+  max_eval_samples: 500
+
+mlflow:
+  experiment_name: "rlhf-copy-demo"
+  tracking_uri: "mlruns"
